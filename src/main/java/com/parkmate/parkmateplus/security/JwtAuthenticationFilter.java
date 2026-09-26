@@ -31,10 +31,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
-        // Get Authorization header
         String authHeader = request.getHeader("Authorization");
 
-        // No Authorization header
+        // No JWT
         if (authHeader == null ||
                 !authHeader.startsWith("Bearer ")) {
 
@@ -42,22 +41,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Extract JWT token
         String token = authHeader.substring(7);
 
         try {
 
-            // Check whether token is valid
             if (jwtService.isTokenValid(token)) {
 
                 String email = jwtService.extractEmail(token);
                 String role = jwtService.extractRole(token);
 
-                // Don't create authentication again
                 if (email != null &&
+                        role != null &&
                         SecurityContextHolder
-                                .getContext()
-                                .getAuthentication() == null) {
+                            .getContext()
+                            .getAuthentication() == null) {
 
                     String authority = "ROLE_" + role;
 
@@ -77,7 +74,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     .buildDetails(request)
                     );
 
-                    // Store authenticated user
                     SecurityContextHolder
                             .getContext()
                             .setAuthentication(authentication);
@@ -86,11 +82,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         } catch (Exception e) {
 
-            // Invalid JWT
             SecurityContextHolder.clearContext();
         }
 
-        // Continue request
         filterChain.doFilter(request, response);
     }
 }

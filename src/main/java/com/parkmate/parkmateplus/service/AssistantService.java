@@ -1,7 +1,5 @@
 package com.parkmate.parkmateplus.service;
 
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -42,40 +40,38 @@ public class AssistantService {
     // =========================
     public Assistant login(String email, String password) {
 
-        List<Assistant> assistants =
-                assistantRepository.findAllByEmail(email);
+        Assistant assistant = assistantRepository.findFirstByEmailOrderByIdAsc(email);
 
-        for (Assistant assistant : assistants) {
+        if (assistant != null
+                && assistant.getPassword() != null
+                && passwordEncoder.matches(password, assistant.getPassword())) {
 
-            if (assistant.getPassword() != null
-                    && passwordEncoder.matches(
-                            password,
-                            assistant.getPassword())) {
-
-                return assistant;
-            }
+            return assistant;
         }
 
         return null;
     }
 
-    // =========================
-    // RESET TEST ASSISTANT PASSWORD
-    // =========================
-    public void resetTestAssistantPassword(
-            Long assistantId,
-            String newPassword) {
+ // =========================
+ // GET ASSISTANT BY EMAIL
+ // =========================
 
-        Assistant assistant = assistantRepository.findById(assistantId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Assistant Not Found With ID : "
-                                        + assistantId));
+ public Assistant getAssistantByEmail(String email) {
+     return assistantRepository.findFirstByEmailOrderByIdAsc(email);
+ }
 
-        assistant.setPassword(
-                passwordEncoder.encode(newPassword)
-        );
+ // =========================
+ // TEMPORARY PASSWORD RESET
+ // =========================
 
-        assistantRepository.save(assistant);
-    }
-}
+ public void resetTestAssistantPassword(Long assistantId, String newPassword) {
+
+     Assistant assistant = assistantRepository.findById(assistantId)
+             .orElseThrow(() ->
+                     new RuntimeException(
+                             "Assistant Not Found With ID : " + assistantId));
+
+     assistant.setPassword(passwordEncoder.encode(newPassword));
+
+     assistantRepository.save(assistant);
+ }}

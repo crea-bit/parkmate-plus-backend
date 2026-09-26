@@ -1,6 +1,7 @@
 package com.parkmate.parkmateplus.controller;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
@@ -48,7 +49,6 @@ public class AssistantLocationController {
             );
         }
 
-
         // =====================================================
         // CHECK ASSISTANT ROLE
         // =====================================================
@@ -73,37 +73,41 @@ public class AssistantLocationController {
             );
         }
 
-
         // =====================================================
-        // FIND LOGGED-IN ASSISTANT
+        // FIND ASSISTANT BY ID
+        // IMPORTANT:
+        // We use findById because findByEmail() does not exist
+        // in your AssistantRepository.
         // =====================================================
 
-        String email = authentication.getName();
+        Optional<Assistant> assistantOptional =
+                assistantRepository.findById(assistantId);
 
-        Assistant loggedInAssistant =
-                assistantRepository.findByEmail(email);
-
-        if (loggedInAssistant == null) {
+        if (assistantOptional.isEmpty()) {
 
             throw new AccessDeniedException(
                     "Assistant account not found"
             );
         }
 
+        Assistant loggedInAssistant =
+                assistantOptional.get();
 
         // =====================================================
         // OWNERSHIP CHECK
         // =====================================================
 
-        if (!loggedInAssistant
-                .getId()
-                .equals(assistantId)) {
+        String loggedInEmail =
+                authentication.getName();
+
+        if (loggedInAssistant.getEmail() == null ||
+                !loggedInAssistant.getEmail()
+                        .equalsIgnoreCase(loggedInEmail)) {
 
             throw new AccessDeniedException(
                     "You can update only your own location"
             );
         }
-
 
         // =====================================================
         // VALIDATE LOCATION
@@ -118,7 +122,6 @@ public class AssistantLocationController {
             );
         }
 
-
         if (location.getLatitude() < -90 ||
                 location.getLatitude() > 90) {
 
@@ -127,7 +130,6 @@ public class AssistantLocationController {
             );
         }
 
-
         if (location.getLongitude() < -180 ||
                 location.getLongitude() > 180) {
 
@@ -135,7 +137,6 @@ public class AssistantLocationController {
                     "Invalid longitude"
             );
         }
-
 
         // =====================================================
         // UPDATE LOCATION
@@ -152,7 +153,6 @@ public class AssistantLocationController {
         loggedInAssistant.setLastLocationUpdate(
                 LocalDateTime.now()
         );
-
 
         // =====================================================
         // SAVE
