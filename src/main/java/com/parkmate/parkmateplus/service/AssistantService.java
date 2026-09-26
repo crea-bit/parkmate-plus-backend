@@ -1,5 +1,7 @@
 package com.parkmate.parkmateplus.service;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -40,28 +42,39 @@ public class AssistantService {
     // =========================
     public Assistant login(String email, String password) {
 
-        Assistant assistant =
-                assistantRepository.findByEmail(email);
+        List<Assistant> assistants =
+                assistantRepository.findAllByEmail(email);
 
-        if (assistant != null &&
-                assistant.getPassword() != null &&
-                passwordEncoder.matches(
-                        password,
-                        assistant.getPassword())) {
+        for (Assistant assistant : assistants) {
 
-            return assistant;
+            if (assistant.getPassword() != null
+                    && passwordEncoder.matches(
+                            password,
+                            assistant.getPassword())) {
+
+                return assistant;
+            }
         }
 
         return null;
     }
-    public void resetTestAssistantPassword(Long assistantId, String newPassword) {
+
+    // =========================
+    // RESET TEST ASSISTANT PASSWORD
+    // =========================
+    public void resetTestAssistantPassword(
+            Long assistantId,
+            String newPassword) {
 
         Assistant assistant = assistantRepository.findById(assistantId)
                 .orElseThrow(() ->
                         new RuntimeException(
-                                "Assistant Not Found With ID : " + assistantId));
+                                "Assistant Not Found With ID : "
+                                        + assistantId));
 
-        assistant.setPassword(passwordEncoder.encode(newPassword));
+        assistant.setPassword(
+                passwordEncoder.encode(newPassword)
+        );
 
         assistantRepository.save(assistant);
     }
