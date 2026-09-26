@@ -14,19 +14,43 @@ public class NotificationService {
     @Autowired
     private NotificationRepository notificationRepository;
 
+    // Create a notification
     public Notification createNotification(Long userId, String message) {
-        Notification notification = new Notification(userId, message);
+
+        Notification notification =
+                new Notification(userId, message);
+
         return notificationRepository.save(notification);
     }
 
+    // Get notifications of a specific user
     public List<Notification> getUserNotifications(Long userId) {
-        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
+
+        return notificationRepository
+                .findByUserIdOrderByCreatedAtDesc(userId);
     }
 
-    public Notification markAsRead(Long notificationId) {
-        Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new RuntimeException(
-                        "Notification Not Found With ID : " + notificationId));
+    // Mark notification as read
+    public Notification markAsRead(
+            Long notificationId,
+            Long userId) {
+
+        Notification notification =
+                notificationRepository
+                        .findById(notificationId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Notification Not Found With ID : "
+                                                + notificationId));
+
+        // Security check:
+        // Make sure this notification belongs to
+        // the currently logged-in user
+        if (!userId.equals(notification.getUserId())) {
+
+            throw new RuntimeException(
+                    "Unauthorized: You cannot modify this notification");
+        }
 
         notification.setReadStatus(true);
 

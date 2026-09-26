@@ -27,19 +27,27 @@ public class RatingService {
     }
 
     public double getAverageRating() {
+
         List<Rating> ratings = ratingRepository.findAll();
 
-        if (ratings.isEmpty()) {
+        double sum = 0;
+        int count = 0;
+
+        for (Rating rating : ratings) {
+
+            if (rating.getRating() == null) {
+                continue;
+            }
+
+            sum += rating.getRating();
+            count++;
+        }
+
+        if (count == 0) {
             return 0.0;
         }
 
-        double sum = 0;
-
-        for (Rating rating : ratings) {
-            sum += rating.getRating();
-        }
-
-        return sum / ratings.size();
+        return sum / count;
     }
 
     public double getAverageRatingByAssistant(Long assistantId) {
@@ -66,6 +74,12 @@ public class RatingService {
         Map<Long, List<Integer>> map = new HashMap<>();
 
         for (Rating rating : ratings) {
+
+            // Ignore incomplete rating records
+            if (rating.getAssistantId() == null || rating.getRating() == null) {
+                continue;
+            }
+
             Long assistantId = rating.getAssistantId();
 
             if (!map.containsKey(assistantId)) {

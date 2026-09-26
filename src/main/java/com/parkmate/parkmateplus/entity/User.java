@@ -4,7 +4,9 @@ import java.util.List;
 
 import jakarta.persistence.*;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
 @Table(name = "users")
@@ -19,6 +21,7 @@ public class User {
     @Column(unique = true)
     private String email;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
     private String phone;
@@ -29,9 +32,11 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<Vehicle> vehicles;
 
+    // Default constructor
     public User() {
     }
 
+    // Parameterized constructor
     public User(Long id, String name, String email,
                 String password, String phone,
                 String role, List<Vehicle> vehicles) {
@@ -44,6 +49,8 @@ public class User {
         this.role = role;
         this.vehicles = vehicles;
     }
+
+    // Getters and Setters
 
     public Long getId() {
         return id;

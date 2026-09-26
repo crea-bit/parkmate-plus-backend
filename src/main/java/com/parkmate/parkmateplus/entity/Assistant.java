@@ -1,5 +1,9 @@
 package com.parkmate.parkmateplus.entity;
 
+import java.time.LocalDateTime;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -11,17 +15,53 @@ public class Assistant {
     private Long id;
 
     private String name;
+
     private String email;
+
     private String phone;
+
     private String status;
 
     private Double rating;
 
+    // =========================================================
+    // ASSISTANT LOCATION
+    // =========================================================
+
+    private Double latitude;
+
+    private Double longitude;
+
+    private LocalDateTime lastLocationUpdate;
+
+    // =========================================================
+    // PASSWORD
+    // =========================================================
+
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String password;
+
+
+    // =========================================================
+    // DEFAULT CONSTRUCTOR
+    // =========================================================
+
     public Assistant() {
     }
 
-    public Assistant(Long id, String name, String email,
-                     String phone, String status, Double rating) {
+
+    // =========================================================
+    // CONSTRUCTOR
+    // =========================================================
+
+    public Assistant(
+            Long id,
+            String name,
+            String email,
+            String phone,
+            String status,
+            Double rating) {
+
         this.id = id;
         this.name = name;
         this.email = email;
@@ -29,6 +69,11 @@ public class Assistant {
         this.status = status;
         this.rating = rating;
     }
+
+
+    // =========================================================
+    // GETTERS
+    // =========================================================
 
     public Long getId() {
         return id;
@@ -54,6 +99,27 @@ public class Assistant {
         return rating;
     }
 
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public LocalDateTime getLastLocationUpdate() {
+        return lastLocationUpdate;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+
+    // =========================================================
+    // SETTERS
+    // =========================================================
+
     public void setId(Long id) {
         this.id = id;
     }
@@ -76,5 +142,24 @@ public class Assistant {
 
     public void setRating(Double rating) {
         this.rating = rating;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    public void setLastLocationUpdate(
+            LocalDateTime lastLocationUpdate) {
+
+        this.lastLocationUpdate =
+                lastLocationUpdate;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 }

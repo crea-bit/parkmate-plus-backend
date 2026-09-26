@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import com.parkmate.parkmateplus.dto.BookingDetailsDTO;
@@ -35,7 +36,41 @@ public class BookingService {
     @Autowired
     private AssistantRepository assistantRepository;
 
+
+    // =========================================================
+    // CREATE BOOKING
+    // =========================================================
+
     public Booking createBooking(Booking booking) {
+
+        // =====================================================
+        // VEHICLE OWNERSHIP CHECK
+        // =====================================================
+
+        if (booking.getVehicleId() != null) {
+
+            Vehicle vehicle = vehicleRepository
+                    .findById(booking.getVehicleId())
+                    .orElseThrow(() -> new RuntimeException(
+                            "Vehicle Not Found With ID : "
+                                    + booking.getVehicleId()
+                    ));
+
+            if (vehicle.getUser() == null ||
+                    !vehicle.getUser()
+                            .getId()
+                            .equals(booking.getUserId())) {
+
+                throw new AccessDeniedException(
+                        "You are not authorized to use this vehicle"
+                );
+            }
+        }
+
+
+        // =====================================================
+        // PARKING LOCATION MUST BE WITHIN 1 KM
+        // =====================================================
 
         if (booking.getPickupLat() != null &&
                 booking.getPickupLng() != null &&
@@ -50,84 +85,273 @@ public class BookingService {
             );
 
             if (distance > 1.0) {
-                throw new RuntimeException("Parking location must be within 1 km");
+
+                throw new RuntimeException(
+                        "Parking location must be within 1 km"
+                );
             }
         }
 
-        booking.setStatus("REQUESTED");
-        booking.setAssistantId(null);
 
-        String otp = String.valueOf(1000 + new Random().nextInt(9000));
+        // =====================================================
+        // SELECTED ASSISTANT CHECK
+        // =====================================================
+
+        if (booking.getAssistantId() != null) {
+
+            Assistant assistant = assistantRepository
+                    .findById(booking.getAssistantId())
+                    .orElseThrow(() -> new RuntimeException(
+                            "Assistant Not Found With ID : "
+                                    + booking.getAssistantId()
+                    ));
+
+            if (!"AVAILABLE".equalsIgnoreCase(
+                    assistant.getStatus())) {
+
+                throw new RuntimeException(
+                        "Selected assistant is not available"
+                );
+            }
+        }
+
+
+        // =====================================================
+        // BOOKING STATUS
+        // =====================================================
+
+        booking.setStatus("REQUESTED");
+
+        // IMPORTANT:
+        // Do NOT set assistantId to null.
+        // Selected assistant remains attached to booking.
+
+
+        // =====================================================
+        // GENERATE OTP
+        // =====================================================
+
+        String otp = String.valueOf(
+                1000 + new Random().nextInt(9000)
+        );
+
         booking.setOtp(otp);
 
-        Booking savedBooking = bookingRepository.save(booking);
+
+        // =====================================================
+        // SAVE BOOKING
+        // =====================================================
+
+        Booking savedBooking =
+                bookingRepository.save(booking);
+
+
+        // =====================================================
+        // USER NOTIFICATION
+        // =====================================================
 
         notificationService.createNotification(
                 savedBooking.getUserId(),
-                "Your parking request has been created. Booking ID: " + savedBooking.getId()
+                "Your parking request has been created. Booking ID: "
+                        + savedBooking.getId()
         );
 
         return savedBooking;
     }
 
-    private double calculateDistance(Double lat1,
-                                     Double lon1,
-                                     Double lat2,
-                                     Double lon2) {
+
+    // =========================================================
+    // CALCULATE DISTANCE
+    // =========================================================
+
+    private double calculateDistance(
+            Double lat1,
+            Double lon1,
+            Double lat2,
+            Double lon2) {
 
         final int R = 6371;
 
-        double latDistance = Math.toRadians(lat2 - lat1);
-        double lonDistance = Math.toRadians(lon2 - lon1);
+        double latDistance =
+                Math.toRadians(lat2 - lat1);
+
+        double lonDistance =
+                Math.toRadians(lon2 - lon1);
 
         double a =
-                Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
-                        + Math.cos(Math.toRadians(lat1))
-                        * Math.cos(Math.toRadians(lat2))
+                Math.sin(latDistance / 2)
+                        * Math.sin(latDistance / 2)
+                        + Math.cos(
+                                Math.toRadians(lat1)
+                        )
+                        * Math.cos(
+                                Math.toRadians(lat2)
+                        )
                         * Math.sin(lonDistance / 2)
                         * Math.sin(lonDistance / 2);
 
         double c =
-                2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                2 * Math.atan2(
+                        Math.sqrt(a),
+                        Math.sqrt(1 - a)
+                );
 
         return R * c;
     }
 
-    public Booking assignAssistant(Long bookingId, Long assistantId) {
 
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException(
-                        "Booking Not Found With ID : " + bookingId
-                ));
+    // =========================================================
+    // GET ASSISTANT BY EMAIL
+    // =========================================================
 
-        booking.setAssistantId(assistantId);
+    public Assistant getAssistantByEmail(String email) {
+
+        return assistantRepository.findByEmail(email);
+    }
+
+
+    // =========================================================
+    // ADMIN - ASSIGN ASSISTANT
+    // =========================================================
+
+    public Booking assignAssistant(
+            Long bookingId,
+            Long assistantId) {
+
+        Booking booking =
+                bookingRepository.findById(bookingId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Booking Not Found With ID : "
+                                                + bookingId
+                                )
+                        );
+
+        Assistant assistant =
+                assistantRepository.findById(assistantId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Assistant Not Found With ID : "
+                                                + assistantId
+                                )
+                        );
+
+        booking.setAssistantId(
+                assistant.getId()
+        );
+
         booking.setStatus("ASSIGNED");
 
-        Booking updatedBooking = bookingRepository.save(booking);
+        Booking updatedBooking =
+                bookingRepository.save(booking);
 
         notificationService.createNotification(
                 updatedBooking.getUserId(),
-                "Assistant assigned for Booking #" + updatedBooking.getId()
+                "Assistant assigned for Booking #"
+                        + updatedBooking.getId()
         );
 
         return updatedBooking;
     }
 
-    public String verifyOtp(Long bookingId, String otp) {
 
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException(
-                        "Booking Not Found With ID : " + bookingId
-                ));
+    // =========================================================
+    // ASSISTANT - ACCEPT REQUEST
+    // =========================================================
+
+    public Booking acceptBooking(
+            Long bookingId,
+            Long assistantId) {
+
+        Booking booking =
+                bookingRepository.findById(bookingId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Booking Not Found With ID : "
+                                                + bookingId
+                                )
+                        );
+
+
+        // =====================================================
+        // VERIFY SELECTED ASSISTANT
+        // =====================================================
+
+        if (booking.getAssistantId() == null ||
+                !booking.getAssistantId()
+                        .equals(assistantId)) {
+
+            throw new AccessDeniedException(
+                    "This booking is not assigned to you"
+            );
+        }
+
+
+        // =====================================================
+        // ONLY REQUESTED BOOKINGS CAN BE ACCEPTED
+        // =====================================================
+
+        if (!"REQUESTED".equalsIgnoreCase(
+                booking.getStatus())) {
+
+            throw new RuntimeException(
+                    "Booking is no longer available"
+            );
+        }
+
+
+        // =====================================================
+        // CHANGE TO ASSIGNED
+        // =====================================================
+
+        booking.setStatus("ASSIGNED");
+
+        Booking updatedBooking =
+                bookingRepository.save(booking);
+
+
+        // =====================================================
+        // NOTIFY USER
+        // =====================================================
+
+        notificationService.createNotification(
+                updatedBooking.getUserId(),
+                "Assistant accepted your Booking #"
+                        + updatedBooking.getId()
+        );
+
+        return updatedBooking;
+    }
+
+
+    // =========================================================
+    // VERIFY OTP
+    // =========================================================
+
+    public String verifyOtp(
+            Long bookingId,
+            String otp) {
+
+        Booking booking =
+                bookingRepository.findById(bookingId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Booking Not Found With ID : "
+                                                + bookingId
+                                )
+                        );
 
         if (booking.getOtp().equals(otp)) {
+
             booking.setStatus("OTP_VERIFIED");
 
-            Booking updatedBooking = bookingRepository.save(booking);
+            Booking updatedBooking =
+                    bookingRepository.save(booking);
 
             notificationService.createNotification(
                     updatedBooking.getUserId(),
-                    "OTP verified successfully for Booking #" + updatedBooking.getId()
+                    "OTP verified successfully for Booking #"
+                            + updatedBooking.getId()
             );
 
             return "OTP VERIFIED SUCCESSFULLY";
@@ -136,124 +360,366 @@ public class BookingService {
         return "INVALID OTP";
     }
 
-    public Booking updateStatus(Long bookingId, String status) {
 
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException(
-                        "Booking Not Found With ID : " + bookingId
-                ));
+    // =========================================================
+    // UPDATE BOOKING STATUS
+    // =========================================================
+
+    public Booking updateStatus(
+            Long bookingId,
+            String status) {
+
+        Booking booking =
+                bookingRepository.findById(bookingId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Booking Not Found With ID : "
+                                                + bookingId
+                                )
+                        );
 
         booking.setStatus(status);
 
-        Booking updatedBooking = bookingRepository.save(booking);
+        Booking updatedBooking =
+                bookingRepository.save(booking);
 
         notificationService.createNotification(
                 updatedBooking.getUserId(),
-                "Booking #" + updatedBooking.getId() + " status updated to " + status
+                "Booking #"
+                        + updatedBooking.getId()
+                        + " status updated to "
+                        + status
         );
 
         return updatedBooking;
     }
+
+
+    // =========================================================
+    // REQUEST RETURN
+    // =========================================================
 
     public Booking requestReturn(Long bookingId) {
 
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException(
-                        "Booking Not Found With ID : " + bookingId
-                ));
+        Booking booking =
+                bookingRepository.findById(bookingId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Booking Not Found With ID : "
+                                                + bookingId
+                                )
+                        );
 
         booking.setStatus("RETURN_REQUESTED");
 
-        Booking updatedBooking = bookingRepository.save(booking);
+        Booking updatedBooking =
+                bookingRepository.save(booking);
 
         notificationService.createNotification(
                 updatedBooking.getUserId(),
-                "Return requested for Booking #" + updatedBooking.getId()
+                "Return requested for Booking #"
+                        + updatedBooking.getId()
         );
 
         return updatedBooking;
     }
 
+
+    // =========================================================
+    // GET ALL AVAILABLE REQUESTS
+    // =========================================================
+
     public List<Booking> getAvailableRequests() {
-        return bookingRepository.findByStatus("REQUESTED");
+
+        return bookingRepository.findByStatus(
+                "REQUESTED"
+        );
     }
 
+
+    // =========================================================
+    // GET AVAILABLE REQUESTS FOR SPECIFIC ASSISTANT
+    // =========================================================
+
+    public List<Booking> getAvailableRequestsForAssistant(
+            Long assistantId) {
+
+        List<Booking> requestedBookings =
+                bookingRepository.findByStatus(
+                        "REQUESTED"
+                );
+
+        List<Booking> result =
+                new ArrayList<>();
+
+        for (Booking booking : requestedBookings) {
+
+            if (booking.getAssistantId() != null &&
+                    booking.getAssistantId()
+                            .equals(assistantId)) {
+
+                result.add(booking);
+            }
+        }
+
+        return result;
+    }
+
+
+    // =========================================================
+    // GET ALL BOOKINGS
+    // =========================================================
+
     public List<Booking> getAllBookings() {
+
         return bookingRepository.findAll();
     }
 
-    public List<Booking> getBookingsByUser(Long userId) {
-        return bookingRepository.findByUserId(userId);
+
+    // =========================================================
+    // GET BOOKINGS BY USER
+    // =========================================================
+
+    public List<Booking> getBookingsByUser(
+            Long userId) {
+
+        return bookingRepository.findByUserId(
+                userId
+        );
     }
 
-    public List<Booking> getBookingsByAssistant(Long assistantId) {
-        return bookingRepository.findByAssistantId(assistantId);
+
+    // =========================================================
+    // GET BOOKINGS BY ASSISTANT
+    // =========================================================
+
+    public List<Booking> getBookingsByAssistant(
+            Long assistantId) {
+
+        return bookingRepository.findByAssistantId(
+                assistantId
+        );
     }
 
-    public List<BookingDetailsDTO> getAvailableRequestDetails() {
-        return convertToDTOList(bookingRepository.findByStatus("REQUESTED"));
+
+    // =========================================================
+    // AVAILABLE REQUEST DETAILS
+    // =========================================================
+
+    public List<BookingDetailsDTO>
+    getAvailableRequestDetails() {
+
+        return convertToDTOList(
+                bookingRepository.findByStatus(
+                        "REQUESTED"
+                )
+        );
     }
 
-    public List<BookingDetailsDTO> getBookingDetailsByAssistant(Long assistantId) {
-        return convertToDTOList(bookingRepository.findByAssistantId(assistantId));
+
+    // =========================================================
+    // AVAILABLE REQUEST DETAILS FOR ASSISTANT
+    // =========================================================
+
+    public List<BookingDetailsDTO>
+    getAvailableRequestDetailsForAssistant(
+            Long assistantId) {
+
+        return convertToDTOList(
+                getAvailableRequestsForAssistant(
+                        assistantId
+                )
+        );
     }
 
-    public List<BookingDetailsDTO> getBookingDetailsByUser(Long userId) {
-        return convertToDTOList(bookingRepository.findByUserId(userId));
+
+    // =========================================================
+    // ASSISTANT BOOKING DETAILS
+    // =========================================================
+
+    public List<BookingDetailsDTO>
+    getBookingDetailsByAssistant(
+            Long assistantId) {
+
+        return convertToDTOList(
+                bookingRepository.findByAssistantId(
+                        assistantId
+                )
+        );
     }
 
-    public List<BookingDetailsDTO> getAllBookingDetails() {
-        return convertToDTOList(bookingRepository.findAll());
+
+    // =========================================================
+    // USER BOOKING DETAILS
+    // =========================================================
+
+    public List<BookingDetailsDTO>
+    getBookingDetailsByUser(
+            Long userId) {
+
+        return convertToDTOList(
+                bookingRepository.findByUserId(
+                        userId
+                )
+        );
     }
 
-    private List<BookingDetailsDTO> convertToDTOList(List<Booking> bookings) {
 
-        List<BookingDetailsDTO> detailsList = new ArrayList<>();
+    // =========================================================
+    // ALL BOOKING DETAILS
+    // =========================================================
+
+    public List<BookingDetailsDTO>
+    getAllBookingDetails() {
+
+        return convertToDTOList(
+                bookingRepository.findAll()
+        );
+    }
+
+
+    // =========================================================
+    // CONVERT BOOKING LIST TO DTO
+    // =========================================================
+
+    private List<BookingDetailsDTO>
+    convertToDTOList(
+            List<Booking> bookings) {
+
+        List<BookingDetailsDTO> detailsList =
+                new ArrayList<>();
 
         for (Booking booking : bookings) {
-            detailsList.add(convertToDTO(booking));
+
+            detailsList.add(
+                    convertToDTO(booking)
+            );
         }
 
         return detailsList;
     }
 
-    private BookingDetailsDTO convertToDTO(Booking booking) {
 
-        BookingDetailsDTO dto = new BookingDetailsDTO();
+    // =========================================================
+    // CONVERT BOOKING TO DTO
+    // =========================================================
 
-        dto.setId(booking.getId());
-        dto.setUserId(booking.getUserId());
-        dto.setVehicleId(booking.getVehicleId());
-        dto.setAssistantId(booking.getAssistantId());
+    private BookingDetailsDTO
+    convertToDTO(Booking booking) {
 
-        dto.setPickupLocation(booking.getPickupLocation());
-        dto.setParkingLocation(booking.getParkingLocation());
-        dto.setStatus(booking.getStatus());
-        dto.setOtp(booking.getOtp());
+        BookingDetailsDTO dto =
+                new BookingDetailsDTO();
 
-        dto.setPickupLat(booking.getPickupLat());
-        dto.setPickupLng(booking.getPickupLng());
-        dto.setParkingLat(booking.getParkingLat());
-        dto.setParkingLng(booking.getParkingLng());
+
+        dto.setId(
+                booking.getId()
+        );
+
+        dto.setUserId(
+                booking.getUserId()
+        );
+
+        dto.setVehicleId(
+                booking.getVehicleId()
+        );
+
+        dto.setAssistantId(
+                booking.getAssistantId()
+        );
+
+        dto.setPickupLocation(
+                booking.getPickupLocation()
+        );
+
+        dto.setParkingLocation(
+                booking.getParkingLocation()
+        );
+
+        dto.setStatus(
+                booking.getStatus()
+        );
+
+        dto.setOtp(
+                booking.getOtp()
+        );
+
+        dto.setPickupLat(
+                booking.getPickupLat()
+        );
+
+        dto.setPickupLng(
+                booking.getPickupLng()
+        );
+
+        dto.setParkingLat(
+                booking.getParkingLat()
+        );
+
+        dto.setParkingLng(
+                booking.getParkingLng()
+        );
+
+
+        // =====================================================
+        // USER DETAILS
+        // =====================================================
 
         if (booking.getUserId() != null) {
-            userRepository.findById(booking.getUserId()).ifPresent(user -> {
-                dto.setUserName(user.getName());
-            });
+
+            userRepository
+                    .findById(
+                            booking.getUserId()
+                    )
+                    .ifPresent(user -> {
+
+                        dto.setUserName(
+                                user.getName()
+                        );
+                    });
         }
+
+
+        // =====================================================
+        // VEHICLE DETAILS
+        // =====================================================
 
         if (booking.getVehicleId() != null) {
-            vehicleRepository.findById(booking.getVehicleId()).ifPresent(vehicle -> {
-                dto.setVehicleNumber(vehicle.getVehicleNumber());
-                dto.setVehicleType(vehicle.getVehicleType());
-            });
+
+            vehicleRepository
+                    .findById(
+                            booking.getVehicleId()
+                    )
+                    .ifPresent(vehicle -> {
+
+                        dto.setVehicleNumber(
+                                vehicle.getVehicleNumber()
+                        );
+
+                        dto.setVehicleType(
+                                vehicle.getVehicleType()
+                        );
+                    });
         }
 
+
+        // =====================================================
+        // ASSISTANT DETAILS
+        // =====================================================
+
         if (booking.getAssistantId() != null) {
-            assistantRepository.findById(booking.getAssistantId()).ifPresent(assistant -> {
-                dto.setAssistantName(assistant.getName());
-            });
+
+            assistantRepository
+                    .findById(
+                            booking.getAssistantId()
+                    )
+                    .ifPresent(assistant -> {
+
+                        dto.setAssistantName(
+                                assistant.getName()
+                        );
+                    });
         }
+
 
         return dto;
     }
