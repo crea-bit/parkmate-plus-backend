@@ -201,85 +201,90 @@ public class BookingService {
         return savedBooking;
     }
 
-    // =========================================================
-    // ACCEPT BOOKING - ASSISTANT
-    // =========================================================
+ // =========================================================
+ // ACCEPT BOOKING - ASSISTANT
+ // =========================================================
 
-    public Booking acceptBooking(
-            Long bookingId,
-            Long assistantId) {
+ public Booking acceptBooking(
+         Long bookingId,
+         Long assistantId) {
 
-        // Find booking
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Booking Not Found With ID : "
-                                        + bookingId));
+     // 1. Find booking
+     Booking booking = bookingRepository.findById(bookingId)
+             .orElseThrow(() ->
+                     new RuntimeException(
+                             "Booking Not Found With ID : "
+                                     + bookingId));
 
-        // Booking must be REQUESTED
-        if (!"REQUESTED".equalsIgnoreCase(
-                booking.getStatus())) {
+     // 2. Booking must be REQUESTED
+     if (!"REQUESTED".equalsIgnoreCase(
+             booking.getStatus())) {
 
-            throw new RuntimeException(
-                    "Booking is not in REQUESTED status");
-        }
+         throw new RuntimeException(
+                 "Booking is not in REQUESTED status");
+     }
 
-        // Find assistant
-        Assistant assistant = assistantRepository.findById(assistantId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Assistant Not Found With ID : "
-                                        + assistantId));
+     // 3. Find assistant
+     Assistant assistant = assistantRepository
+             .findById(assistantId)
+             .orElseThrow(() ->
+                     new RuntimeException(
+                             "Assistant Not Found With ID : "
+                                     + assistantId));
 
-        // Assistant must be AVAILABLE
-        if (assistant.getStatus() == null
-                || !"AVAILABLE".equalsIgnoreCase(
-                        assistant.getStatus())) {
+     // 4. Assistant must be AVAILABLE
+     if (assistant.getStatus() == null
+             || !"AVAILABLE".equalsIgnoreCase(
+                     assistant.getStatus())) {
 
-            throw new RuntimeException(
-                    "Assistant is not available");
-        }
+         throw new RuntimeException(
+                 "Assistant is not available");
+     }
 
-        // If booking is already assigned to another assistant,
-        // do not allow this assistant to take it
-        if (booking.getAssistantId() != null
-                && !booking.getAssistantId().equals(assistantId)) {
+     // 5. If already assigned to another assistant,
+     //    do not allow this assistant to take it
+     if (booking.getAssistantId() != null
+             && !booking.getAssistantId()
+                     .equals(assistantId)) {
 
-            throw new AccessDeniedException(
-                    "This booking is already assigned to another assistant");
-        }
+         throw new AccessDeniedException(
+                 "This booking is already assigned "
+                         + "to another assistant");
+     }
 
-        // Assign booking to this assistant
-        booking.setAssistantId(assistantId);
+     // 6. Assign this assistant
+     booking.setAssistantId(assistantId);
 
-        // Change status
-        booking.setStatus("ASSIGNED");
+     // 7. Change status
+     booking.setStatus("ASSIGNED");
 
-        // Save booking
-        Booking savedBooking =
-                bookingRepository.save(booking);
+     // 8. Save booking
+     Booking savedBooking =
+             bookingRepository.save(booking);
 
-        // Notification
-        try {
+     // 9. Notify user
+     try {
 
-            notificationService.createNotification(
-                    booking.getUserId(),
-                    "Your assistant "
-                            + assistant.getName()
-                            + " has accepted booking #"
-                            + booking.getId()
-            );
+         notificationService.createNotification(
+                 booking.getUserId(),
 
-        } catch (Exception e) {
+                 "Your assistant "
+                         + assistant.getName()
+                         + " has accepted booking #"
+                         + booking.getId()
+         );
 
-            System.out.println(
-                    "Notification creation failed: "
-                            + e.getMessage()
-            );
-        }
+     } catch (Exception e) {
 
-        return savedBooking;
-    }
+         System.out.println(
+                 "Notification creation failed: "
+                         + e.getMessage()
+         );
+     }
+
+     // 10. Return updated booking
+     return savedBooking;
+ }
 
     // =========================================================
     // VERIFY OTP
