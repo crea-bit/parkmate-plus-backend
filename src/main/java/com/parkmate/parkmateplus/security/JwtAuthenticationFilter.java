@@ -19,10 +19,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Component
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+public class JwtAuthenticationFilter
+        extends OncePerRequestFilter {
 
     @Autowired
     private JwtService jwtService;
+
 
     @Override
     protected void doFilterInternal(
@@ -31,60 +33,96 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
+        String authHeader =
+                request.getHeader("Authorization");
 
-        // No JWT
+
+        // =====================================================
+        // NO TOKEN
+        // =====================================================
+
         if (authHeader == null ||
-                !authHeader.startsWith("Bearer ")) {
+            !authHeader.startsWith("Bearer ")) {
 
             filterChain.doFilter(request, response);
             return;
         }
 
-        String token = authHeader.substring(7);
+
+        String token =
+                authHeader.substring(7);
+
 
         try {
 
+            // =================================================
+            // VALIDATE TOKEN
+            // =================================================
+
             if (jwtService.isTokenValid(token)) {
 
-                String email = jwtService.extractEmail(token);
-                String role = jwtService.extractRole(token);
+                String email =
+                        jwtService.extractEmail(token);
+
+                String role =
+                        jwtService.extractRole(token);
+
+
+                // =================================================
+                // CREATE AUTHENTICATION
+                // =================================================
 
                 if (email != null &&
-                        role != null &&
-                        SecurityContextHolder
-                            .getContext()
-                            .getAuthentication() == null) {
+                    role != null &&
+                    SecurityContextHolder
+                        .getContext()
+                        .getAuthentication() == null) {
 
-                    String authority = "ROLE_" + role;
+                    String authority =
+                            "ROLE_" + role;
+
 
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
                                     email,
                                     null,
                                     Collections.singletonList(
-                                            new SimpleGrantedAuthority(
-                                                    authority
-                                            )
+                                        new SimpleGrantedAuthority(
+                                            authority
+                                        )
                                     )
                             );
 
+
                     authentication.setDetails(
-                            new WebAuthenticationDetailsSource()
-                                    .buildDetails(request)
+                        new WebAuthenticationDetailsSource()
+                            .buildDetails(request)
                     );
 
+
                     SecurityContextHolder
-                            .getContext()
-                            .setAuthentication(authentication);
+                        .getContext()
+                        .setAuthentication(
+                            authentication
+                        );
                 }
             }
 
         } catch (Exception e) {
 
-            SecurityContextHolder.clearContext();
+            SecurityContextHolder
+                .clearContext();
+
+            System.out.println(
+                "JWT authentication failed: "
+                + e.getMessage()
+            );
         }
 
-        filterChain.doFilter(request, response);
+
+        filterChain.doFilter(
+            request,
+            response
+        );
     }
 }

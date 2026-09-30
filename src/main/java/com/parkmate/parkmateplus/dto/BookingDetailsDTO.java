@@ -3,8 +3,12 @@ package com.parkmate.parkmateplus.dto;
 public class BookingDetailsDTO {
 
     private Long id;
+    private Long bookingId;
+
     private Long userId;
     private String userName;
+    private String userEmail;
+    private String userPhone;
 
     private Long vehicleId;
     private String vehicleNumber;
@@ -12,9 +16,13 @@ public class BookingDetailsDTO {
 
     private Long assistantId;
     private String assistantName;
+    private String assistantEmail;
+    private String assistantPhone;
+    private String assistantStatus;
 
     private String pickupLocation;
     private String parkingLocation;
+
     private String status;
     private String otp;
 
@@ -26,8 +34,16 @@ public class BookingDetailsDTO {
     public BookingDetailsDTO() {
     }
 
+    // =========================
+    // GETTERS
+    // =========================
+
     public Long getId() {
         return id;
+    }
+
+    public Long getBookingId() {
+        return bookingId;
     }
 
     public Long getUserId() {
@@ -36,6 +52,14 @@ public class BookingDetailsDTO {
 
     public String getUserName() {
         return userName;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public String getUserPhone() {
+        return userPhone;
     }
 
     public Long getVehicleId() {
@@ -56,6 +80,18 @@ public class BookingDetailsDTO {
 
     public String getAssistantName() {
         return assistantName;
+    }
+
+    public String getAssistantEmail() {
+        return assistantEmail;
+    }
+
+    public String getAssistantPhone() {
+        return assistantPhone;
+    }
+
+    public String getAssistantStatus() {
+        return assistantStatus;
     }
 
     public String getPickupLocation() {
@@ -90,8 +126,16 @@ public class BookingDetailsDTO {
         return parkingLng;
     }
 
+    // =========================
+    // SETTERS
+    // =========================
+
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public void setBookingId(Long bookingId) {
+        this.bookingId = bookingId;
     }
 
     public void setUserId(Long userId) {
@@ -100,6 +144,14 @@ public class BookingDetailsDTO {
 
     public void setUserName(String userName) {
         this.userName = userName;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
+    }
+
+    public void setUserPhone(String userPhone) {
+        this.userPhone = userPhone;
     }
 
     public void setVehicleId(Long vehicleId) {
@@ -120,6 +172,18 @@ public class BookingDetailsDTO {
 
     public void setAssistantName(String assistantName) {
         this.assistantName = assistantName;
+    }
+
+    public void setAssistantEmail(String assistantEmail) {
+        this.assistantEmail = assistantEmail;
+    }
+
+    public void setAssistantPhone(String assistantPhone) {
+        this.assistantPhone = assistantPhone;
+    }
+
+    public void setAssistantStatus(String assistantStatus) {
+        this.assistantStatus = assistantStatus;
     }
 
     public void setPickupLocation(String pickupLocation) {

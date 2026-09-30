@@ -57,9 +57,10 @@ public class JwtService {
 
         Date now = new Date();
 
-        Date expiryDate = new Date(
-                now.getTime() + expiration
-        );
+        Date expiryDate =
+                new Date(
+                    now.getTime() + expiration
+                );
 
         return Jwts.builder()
                 .subject(assistant.getEmail())
@@ -69,8 +70,7 @@ public class JwtService {
                 .expiration(expiryDate)
                 .signWith(getSigningKey())
                 .compact();
-    }
-    // Extract email from token
+    }    // Extract email from token
     public String extractEmail(String token) {
 
         return extractAllClaims(token)

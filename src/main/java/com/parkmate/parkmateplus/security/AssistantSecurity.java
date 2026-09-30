@@ -103,19 +103,30 @@ public class AssistantSecurity {
     public boolean isOwner(Long assistantId) {
 
         Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
 
-        if (authentication == null) {
+        if (authentication == null ||
+            !authentication.isAuthenticated()) {
+
+            return false;
+        }
+
+        String email = authentication.getName();
+
+        if (email == null || email.isBlank()) {
             return false;
         }
 
         List<Assistant> assistants =
-                assistantRepository.findAllByEmail(
-                        authentication.getName());
+                assistantRepository.findAllByEmail(email);
 
         for (Assistant assistant : assistants) {
 
-            if (assistant.getId().equals(assistantId)) {
+            if (assistant.getId() != null &&
+                assistant.getId().equals(assistantId)) {
+
                 return true;
             }
         }
