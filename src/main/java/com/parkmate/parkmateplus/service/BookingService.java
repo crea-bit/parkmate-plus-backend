@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import com.parkmate.parkmateplus.dto.BookingDetailsDTO;
 import com.parkmate.parkmateplus.entity.Assistant;
 import com.parkmate.parkmateplus.entity.Booking;
-import com.parkmate.parkmateplus.entity.Notification;
 import com.parkmate.parkmateplus.entity.User;
 import com.parkmate.parkmateplus.entity.Vehicle;
 import com.parkmate.parkmateplus.repository.AssistantRepository;
@@ -76,6 +75,7 @@ public class BookingService {
         );
 
         if (distance > 1.0) {
+
             throw new RuntimeException(
                     "Parking location must be within 1 km of pickup location");
         }
@@ -89,7 +89,8 @@ public class BookingService {
                             new RuntimeException("Assistant Not Found"));
 
             if (assistant.getStatus() == null
-                    || !"AVAILABLE".equalsIgnoreCase(assistant.getStatus())) {
+                    || !"AVAILABLE".equalsIgnoreCase(
+                            assistant.getStatus())) {
 
                 throw new RuntimeException(
                         "Selected assistant is not available");
@@ -112,13 +113,16 @@ public class BookingService {
 
         // Notification
         try {
+
             notificationService.createNotification(
                     booking.getUserId(),
                     "Booking #" + savedBooking.getId()
                             + " created successfully. Your OTP is "
                             + otp
             );
+
         } catch (Exception e) {
+
             System.out.println(
                     "Notification creation failed: "
                             + e.getMessage()
@@ -165,7 +169,8 @@ public class BookingService {
                                         + assistantId));
 
         if (assistant.getStatus() == null
-                || !"AVAILABLE".equalsIgnoreCase(assistant.getStatus())) {
+                || !"AVAILABLE".equalsIgnoreCase(
+                        assistant.getStatus())) {
 
             throw new RuntimeException(
                     "Assistant is not available");
@@ -174,16 +179,20 @@ public class BookingService {
         booking.setAssistantId(assistantId);
         booking.setStatus("ASSIGNED");
 
-        Booking savedBooking = bookingRepository.save(booking);
+        Booking savedBooking =
+                bookingRepository.save(booking);
 
         try {
+
             notificationService.createNotification(
                     booking.getUserId(),
                     "Assistant "
                             + assistant.getName()
                             + " has been assigned to your booking."
             );
+
         } catch (Exception e) {
+
             System.out.println(
                     "Notification creation failed: "
                             + e.getMessage()
@@ -207,14 +216,6 @@ public class BookingService {
                                 "Booking Not Found With ID : "
                                         + bookingId));
 
-        // Make sure this booking is assigned to this assistant
-        if (booking.getAssistantId() == null
-                || !booking.getAssistantId().equals(assistantId)) {
-
-            throw new AccessDeniedException(
-                    "This booking is not assigned to you");
-        }
-
         // Booking must be REQUESTED
         if (!"REQUESTED".equalsIgnoreCase(
                 booking.getStatus())) {
@@ -223,17 +224,53 @@ public class BookingService {
                     "Booking is not in REQUESTED status");
         }
 
+        // Get assistant
+        Assistant assistant = assistantRepository.findById(assistantId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Assistant Not Found With ID : "
+                                        + assistantId));
+
+        // Assistant must be AVAILABLE
+        if (assistant.getStatus() == null
+                || !"AVAILABLE".equalsIgnoreCase(
+                        assistant.getStatus())) {
+
+            throw new RuntimeException(
+                    "Assistant is not available");
+        }
+
+        // If another assistant already has this booking,
+        // do not allow this assistant to accept it.
+        if (booking.getAssistantId() != null
+                && !booking.getAssistantId().equals(assistantId)) {
+
+            throw new AccessDeniedException(
+                    "This booking is already assigned to another assistant");
+        }
+
+        // Assign booking to this assistant
+        booking.setAssistantId(assistantId);
+
+        // Change status
         booking.setStatus("ASSIGNED");
 
-        Booking savedBooking = bookingRepository.save(booking);
+        Booking savedBooking =
+                bookingRepository.save(booking);
 
+        // Notification
         try {
+
             notificationService.createNotification(
                     booking.getUserId(),
-                    "Your assistant has accepted booking #"
+                    "Your assistant "
+                            + assistant.getName()
+                            + " has accepted booking #"
                             + booking.getId()
             );
+
         } catch (Exception e) {
+
             System.out.println(
                     "Notification creation failed: "
                             + e.getMessage()
@@ -286,16 +323,20 @@ public class BookingService {
 
         booking.setStatus(status.toUpperCase());
 
-        Booking savedBooking = bookingRepository.save(booking);
+        Booking savedBooking =
+                bookingRepository.save(booking);
 
         try {
+
             notificationService.createNotification(
                     booking.getUserId(),
                     "Booking #" + booking.getId()
                             + " status changed to "
                             + status.toUpperCase()
             );
+
         } catch (Exception e) {
+
             System.out.println(
                     "Notification creation failed: "
                             + e.getMessage()
@@ -319,17 +360,22 @@ public class BookingService {
 
         booking.setStatus("RETURN_REQUESTED");
 
-        Booking savedBooking = bookingRepository.save(booking);
+        Booking savedBooking =
+                bookingRepository.save(booking);
 
         try {
+
             if (booking.getAssistantId() != null) {
+
                 notificationService.createNotification(
                         booking.getUserId(),
                         "Return request created for booking #"
                                 + booking.getId()
                 );
             }
+
         } catch (Exception e) {
+
             System.out.println(
                     "Notification creation failed: "
                             + e.getMessage()
@@ -358,13 +404,19 @@ public class BookingService {
         List<Booking> all =
                 bookingRepository.findByStatus("REQUESTED");
 
-        List<Booking> result = new ArrayList<>();
+        List<Booking> result =
+                new ArrayList<>();
 
         for (Booking booking : all) {
 
-            if (booking.getAssistantId() != null
-                    && booking.getAssistantId()
-                    .equals(assistantId)) {
+            // Show unassigned REQUESTED bookings
+            if (booking.getAssistantId() == null) {
+
+                result.add(booking);
+            }
+
+            // Also show bookings assigned to this assistant
+            else if (booking.getAssistantId().equals(assistantId)) {
 
                 result.add(booking);
             }
@@ -412,9 +464,11 @@ public class BookingService {
         List<Booking> bookings =
                 getAvailableRequestsForAssistant(assistantId);
 
-        List<BookingDetailsDTO> result = new ArrayList<>();
+        List<BookingDetailsDTO> result =
+                new ArrayList<>();
 
         for (Booking booking : bookings) {
+
             result.add(convertToDTO(booking));
         }
 
@@ -431,9 +485,11 @@ public class BookingService {
         List<Booking> bookings =
                 bookingRepository.findByUserId(userId);
 
-        List<BookingDetailsDTO> result = new ArrayList<>();
+        List<BookingDetailsDTO> result =
+                new ArrayList<>();
 
         for (Booking booking : bookings) {
+
             result.add(convertToDTO(booking));
         }
 
@@ -451,9 +507,11 @@ public class BookingService {
         List<Booking> bookings =
                 bookingRepository.findByAssistantId(assistantId);
 
-        List<BookingDetailsDTO> result = new ArrayList<>();
+        List<BookingDetailsDTO> result =
+                new ArrayList<>();
 
         for (Booking booking : bookings) {
+
             result.add(convertToDTO(booking));
         }
 
@@ -470,9 +528,11 @@ public class BookingService {
         List<Booking> bookings =
                 bookingRepository.findAll();
 
-        List<BookingDetailsDTO> result = new ArrayList<>();
+        List<BookingDetailsDTO> result =
+                new ArrayList<>();
 
         for (Booking booking : bookings) {
+
             result.add(convertToDTO(booking));
         }
 
@@ -486,16 +546,21 @@ public class BookingService {
     private BookingDetailsDTO convertToDTO(
             Booking booking) {
 
-        BookingDetailsDTO dto = new BookingDetailsDTO();
+        BookingDetailsDTO dto =
+                new BookingDetailsDTO();
 
         dto.setBookingId(booking.getId());
+
         dto.setStatus(booking.getStatus());
+
         dto.setOtp(booking.getOtp());
 
         dto.setPickupLat(booking.getPickupLat());
+
         dto.setPickupLng(booking.getPickupLng());
 
         dto.setParkingLat(booking.getParkingLat());
+
         dto.setParkingLng(booking.getParkingLng());
 
         dto.setParkingLocation(
@@ -505,10 +570,15 @@ public class BookingService {
                 booking.getPickupLocation());
 
         dto.setUserId(booking.getUserId());
+
         dto.setVehicleId(booking.getVehicleId());
+
         dto.setAssistantId(booking.getAssistantId());
 
-        // User details
+        // =====================================================
+        // USER DETAILS
+        // =====================================================
+
         if (booking.getUserId() != null) {
 
             User user =
@@ -517,13 +587,22 @@ public class BookingService {
                             .orElse(null);
 
             if (user != null) {
-                dto.setUserName(user.getName());
-                dto.setUserEmail(user.getEmail());
-                dto.setUserPhone(user.getPhone());
+
+                dto.setUserName(
+                        user.getName());
+
+                dto.setUserEmail(
+                        user.getEmail());
+
+                dto.setUserPhone(
+                        user.getPhone());
             }
         }
 
-        // Vehicle details
+        // =====================================================
+        // VEHICLE DETAILS
+        // =====================================================
+
         if (booking.getVehicleId() != null) {
 
             Vehicle vehicle =
@@ -532,14 +611,19 @@ public class BookingService {
                             .orElse(null);
 
             if (vehicle != null) {
+
                 dto.setVehicleNumber(
                         vehicle.getVehicleNumber());
+
                 dto.setVehicleType(
                         vehicle.getVehicleType());
             }
         }
 
-        // Assistant details
+        // =====================================================
+        // ASSISTANT DETAILS
+        // =====================================================
+
         if (booking.getAssistantId() != null) {
 
             Assistant assistant =
@@ -548,12 +632,16 @@ public class BookingService {
                             .orElse(null);
 
             if (assistant != null) {
+
                 dto.setAssistantName(
                         assistant.getName());
+
                 dto.setAssistantEmail(
                         assistant.getEmail());
+
                 dto.setAssistantPhone(
                         assistant.getPhone());
+
                 dto.setAssistantStatus(
                         assistant.getStatus());
             }
@@ -584,14 +672,15 @@ public class BookingService {
                 Math.sin(latDistance / 2)
                         * Math.sin(latDistance / 2)
                 + Math.cos(Math.toRadians(lat1))
-                * Math.cos(Math.toRadians(lat2))
-                * Math.sin(lonDistance / 2)
-                * Math.sin(lonDistance / 2);
+                        * Math.cos(Math.toRadians(lat2))
+                        * Math.sin(lonDistance / 2)
+                        * Math.sin(lonDistance / 2);
 
         double c =
                 2 * Math.atan2(
                         Math.sqrt(a),
-                        Math.sqrt(1 - a));
+                        Math.sqrt(1 - a)
+                );
 
         return EARTH_RADIUS_KM * c;
     }
