@@ -75,7 +75,6 @@ public class BookingService {
         );
 
         if (distance > 1.0) {
-
             throw new RuntimeException(
                     "Parking location must be within 1 km of pickup location");
         }
@@ -97,7 +96,7 @@ public class BookingService {
             }
         }
 
-        // Set initial booking status
+        // Initial booking status
         booking.setStatus("REQUESTED");
 
         // Generate 4-digit OTP
@@ -210,6 +209,7 @@ public class BookingService {
             Long bookingId,
             Long assistantId) {
 
+        // Find booking
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -224,7 +224,7 @@ public class BookingService {
                     "Booking is not in REQUESTED status");
         }
 
-        // Get assistant
+        // Find assistant
         Assistant assistant = assistantRepository.findById(assistantId)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -240,8 +240,8 @@ public class BookingService {
                     "Assistant is not available");
         }
 
-        // If another assistant already has this booking,
-        // do not allow this assistant to accept it.
+        // If booking is already assigned to another assistant,
+        // do not allow this assistant to take it
         if (booking.getAssistantId() != null
                 && !booking.getAssistantId().equals(assistantId)) {
 
@@ -255,6 +255,7 @@ public class BookingService {
         // Change status
         booking.setStatus("ASSIGNED");
 
+        // Save booking
         Booking savedBooking =
                 bookingRepository.save(booking);
 
@@ -297,7 +298,8 @@ public class BookingService {
         if (booking.getOtp() == null
                 || !booking.getOtp().equals(otp)) {
 
-            throw new RuntimeException("Invalid OTP");
+            throw new RuntimeException(
+                    "Invalid OTP");
         }
 
         booking.setStatus("PICKED_UP");
@@ -330,7 +332,8 @@ public class BookingService {
 
             notificationService.createNotification(
                     booking.getUserId(),
-                    "Booking #" + booking.getId()
+                    "Booking #"
+                            + booking.getId()
                             + " status changed to "
                             + status.toUpperCase()
             );
@@ -409,13 +412,18 @@ public class BookingService {
 
         for (Booking booking : all) {
 
-            // Show unassigned REQUESTED bookings
+            /*
+             * Show unassigned REQUESTED bookings
+             */
             if (booking.getAssistantId() == null) {
 
                 result.add(booking);
-            }
 
-            // Also show bookings assigned to this assistant
+            }
+            /*
+             * Also show REQUESTED bookings already assigned
+             * to this same assistant.
+             */
             else if (booking.getAssistantId().equals(assistantId)) {
 
                 result.add(booking);
@@ -450,7 +458,8 @@ public class BookingService {
     public List<Booking> getBookingsByAssistant(
             Long assistantId) {
 
-        return bookingRepository.findByAssistantId(assistantId);
+        return bookingRepository.findByAssistantId(
+                assistantId);
     }
 
     // =========================================================
@@ -462,7 +471,8 @@ public class BookingService {
             Long assistantId) {
 
         List<Booking> bookings =
-                getAvailableRequestsForAssistant(assistantId);
+                getAvailableRequestsForAssistant(
+                        assistantId);
 
         List<BookingDetailsDTO> result =
                 new ArrayList<>();
@@ -505,7 +515,8 @@ public class BookingService {
             Long assistantId) {
 
         List<Booking> bookings =
-                bookingRepository.findByAssistantId(assistantId);
+                bookingRepository.findByAssistantId(
+                        assistantId);
 
         List<BookingDetailsDTO> result =
                 new ArrayList<>();
@@ -549,19 +560,26 @@ public class BookingService {
         BookingDetailsDTO dto =
                 new BookingDetailsDTO();
 
-        dto.setBookingId(booking.getId());
+        dto.setBookingId(
+                booking.getId());
 
-        dto.setStatus(booking.getStatus());
+        dto.setStatus(
+                booking.getStatus());
 
-        dto.setOtp(booking.getOtp());
+        dto.setOtp(
+                booking.getOtp());
 
-        dto.setPickupLat(booking.getPickupLat());
+        dto.setPickupLat(
+                booking.getPickupLat());
 
-        dto.setPickupLng(booking.getPickupLng());
+        dto.setPickupLng(
+                booking.getPickupLng());
 
-        dto.setParkingLat(booking.getParkingLat());
+        dto.setParkingLat(
+                booking.getParkingLat());
 
-        dto.setParkingLng(booking.getParkingLng());
+        dto.setParkingLng(
+                booking.getParkingLng());
 
         dto.setParkingLocation(
                 booking.getParkingLocation());
@@ -569,11 +587,14 @@ public class BookingService {
         dto.setPickupLocation(
                 booking.getPickupLocation());
 
-        dto.setUserId(booking.getUserId());
+        dto.setUserId(
+                booking.getUserId());
 
-        dto.setVehicleId(booking.getVehicleId());
+        dto.setVehicleId(
+                booking.getVehicleId());
 
-        dto.setAssistantId(booking.getAssistantId());
+        dto.setAssistantId(
+                booking.getAssistantId());
 
         // =====================================================
         // USER DETAILS
@@ -671,6 +692,7 @@ public class BookingService {
         double a =
                 Math.sin(latDistance / 2)
                         * Math.sin(latDistance / 2)
+
                 + Math.cos(Math.toRadians(lat1))
                         * Math.cos(Math.toRadians(lat2))
                         * Math.sin(lonDistance / 2)
