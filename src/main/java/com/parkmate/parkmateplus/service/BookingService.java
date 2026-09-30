@@ -233,14 +233,14 @@ public class BookingService {
                                      + assistantId));
 
      // 4. Assistant must be AVAILABLE
+  // 4. Make assistant available when accepting
      if (assistant.getStatus() == null
              || !"AVAILABLE".equalsIgnoreCase(
                      assistant.getStatus())) {
 
-         throw new RuntimeException(
-                 "Assistant is not available");
+         assistant.setStatus("AVAILABLE");
+         assistantRepository.save(assistant);
      }
-
      // 5. If already assigned to another assistant,
      //    do not allow this assistant to take it
      if (booking.getAssistantId() != null
