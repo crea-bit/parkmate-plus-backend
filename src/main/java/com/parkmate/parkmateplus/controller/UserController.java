@@ -36,7 +36,7 @@ public class UserController {
     }
 
     // =========================
-    // LOGIN USER
+    // LOGIN USER / ADMIN
     // =========================
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody User user) {
@@ -71,5 +71,36 @@ public class UserController {
         response.put("user", loggedInUser);
 
         return ResponseEntity.ok(response);
+    }
+
+    // =========================
+    // CREATE ADMIN
+    // =========================
+    @PostMapping("/create-admin")
+    public ResponseEntity<?> createAdmin(
+            @RequestBody User user) {
+
+        try {
+
+            User admin = userService.createAdmin(
+                    user.getName(),
+                    user.getEmail(),
+                    user.getPassword(),
+                    user.getPhone()
+            );
+
+            // Don't return password
+            admin.setPassword(null);
+
+            return ResponseEntity
+                    .status(HttpStatus.CREATED)
+                    .body(admin);
+
+        } catch (Exception e) {
+
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
+        }
     }
 }

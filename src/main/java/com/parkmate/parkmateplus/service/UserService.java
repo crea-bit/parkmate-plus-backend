@@ -16,9 +16,15 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    // Register User
+    // =====================================================
+    // REGISTER NORMAL USER
+    // =====================================================
     public User saveUser(User user) {
 
+        // Normal registration must ALWAYS create USER
+        user.setRole("USER");
+
+        // Encode password only if it is not already encoded
         if (user.getPassword() != null
                 && !user.getPassword().isBlank()
                 && !user.getPassword().startsWith("$2a$")
@@ -32,14 +38,17 @@ public class UserService {
 
         return userRepository.save(user);
     }
-    // Login User
+
+    // =====================================================
+    // LOGIN USER / ADMIN
+    // =====================================================
     public User login(String email, String password) {
 
         User user = userRepository.findByEmail(email);
 
-        if (user != null &&
-                user.getPassword() != null &&
-                passwordEncoder.matches(
+        if (user != null
+                && user.getPassword() != null
+                && passwordEncoder.matches(
                         password,
                         user.getPassword())) {
 
@@ -47,5 +56,38 @@ public class UserService {
         }
 
         return null;
+    }
+
+    // =====================================================
+    // CREATE ADMIN
+    // =====================================================
+    public User createAdmin(
+            String name,
+            String email,
+            String password,
+            String phone) {
+
+        // Check if email already exists
+        User existingUser = userRepository.findByEmail(email);
+
+        if (existingUser != null) {
+            throw new RuntimeException(
+                    "A user with this email already exists"
+            );
+        }
+
+        User admin = new User();
+
+        admin.setName(name);
+        admin.setEmail(email);
+        admin.setPhone(phone);
+        admin.setRole("ADMIN");
+
+        // Encode admin password
+        admin.setPassword(
+                passwordEncoder.encode(password)
+        );
+
+        return userRepository.save(admin);
     }
 }

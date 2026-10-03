@@ -61,7 +61,11 @@ public class SecurityConfig {
                 // -------------------------------------------------
                 .requestMatchers(
                     "/users/register",
-                    "/users/login"
+                    "/users/login",
+
+                    // TEMPORARY:
+                    // Used only to create the first Admin account
+                    "/users/create-admin"
                 ).permitAll()
 
                 // -------------------------------------------------
