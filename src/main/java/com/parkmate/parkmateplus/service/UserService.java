@@ -57,37 +57,4 @@ public class UserService {
 
         return null;
     }
-
-    // =====================================================
-    // CREATE ADMIN
-    // =====================================================
-    public User createAdmin(
-            String name,
-            String email,
-            String password,
-            String phone) {
-
-        // Check if email already exists
-        User existingUser = userRepository.findByEmail(email);
-
-        if (existingUser != null) {
-            throw new RuntimeException(
-                    "A user with this email already exists"
-            );
-        }
-
-        User admin = new User();
-
-        admin.setName(name);
-        admin.setEmail(email);
-        admin.setPhone(phone);
-        admin.setRole("ADMIN");
-
-        // Encode admin password
-        admin.setPassword(
-                passwordEncoder.encode(password)
-        );
-
-        return userRepository.save(admin);
-    }
 }

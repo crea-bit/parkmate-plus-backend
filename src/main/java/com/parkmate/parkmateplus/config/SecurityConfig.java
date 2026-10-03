@@ -59,14 +59,10 @@ public class SecurityConfig {
                 // -------------------------------------------------
                 // PUBLIC USER APIs
                 // -------------------------------------------------
-                .requestMatchers(
-                    "/users/register",
-                    "/users/login",
-
-                    // TEMPORARY:
-                    // Used only to create the first Admin account
-                    "/users/create-admin"
-                ).permitAll()
+            		.requestMatchers(
+            			    "/users/register",
+            			    "/users/login"
+            			).permitAll()
 
                 // -------------------------------------------------
                 // PUBLIC ASSISTANT APIs
