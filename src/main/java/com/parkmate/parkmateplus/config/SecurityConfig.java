@@ -59,10 +59,10 @@ public class SecurityConfig {
                 // -------------------------------------------------
                 // PUBLIC USER APIs
                 // -------------------------------------------------
-            		.requestMatchers(
-            			    "/users/register",
-            			    "/users/login"
-            			).permitAll()
+                .requestMatchers(
+                    "/users/register",
+                    "/users/login"
+                ).permitAll()
 
                 // -------------------------------------------------
                 // PUBLIC ASSISTANT APIs
@@ -85,6 +85,13 @@ public class SecurityConfig {
                 .requestMatchers(
                     HttpMethod.OPTIONS,
                     "/**"
+                ).permitAll()
+
+                // -------------------------------------------------
+                // HEALTH CHECK
+                // -------------------------------------------------
+                .requestMatchers(
+                    "/health"
                 ).permitAll()
 
                 // -------------------------------------------------
